@@ -94,7 +94,7 @@ This section provides a brief overview of the typical booting sequence, starting
 
 ![Tizen bootup sequence](media/800px-boot-1.png)
 
-The Tizen bootup process is same as any other Linux kernel. Make sure that the correct machine ID and the boot arguments are passed from the boot loader.
+The Tizen bootup process is same as any other Linux kernel. Make sure that the correct device-tree and the boot arguments are passed from the boot loader.
 
 After mounting the initial RAM disk image, `initramfs` hands over control to `systemd` as the Tizen platform system manager daemon. From this point, `systemd` is responsible for probing all remaining hardware, mounting all necessary file systems, and spawning all configured services. The system bootup process is split up into discrete steps. To synchronize points during start-up, target units (files whose names end in `.target`) are used for grouping units. The bootup process is highly parallelized in each target so that the order in which specific target units are reached is not determined. The `system-plugin-slp` is an OAL plugin for configuration settings, such as the mount point (`/etc/fstab`).
 
@@ -112,10 +112,6 @@ The following figure shows the early boot sequence after starting the kernel.
 
   Special target unit for basic bootup. At this point, all necessary initialization for general purpose daemons, such as mount points, sockets, timers, and path units, is completed. Tizen-specific services (such as `vconf-setup` and `tizen-debug-level`) are also executed.
 
-- `bootmode.target`
-
-  Special target unit for selecting the boot mode. If the kernel boot parameter (`/proc/cmdline`) has the `charger_detect_boot` option passed by a boot loader, such as `uboot`, the platform boots up in charging mode. In this mode, the system enters the low power mode and charges the battery. If the `charger_detect_boot` option is not included as a kernel boot parameter, a normal boot is started.
-
 The following figure shows the overview of normal booting sequence in Tizen platform.
 
 **Figure: Tizen platform boot sequence**
@@ -124,11 +120,11 @@ The following figure shows the overview of normal booting sequence in Tizen plat
 
 - `multi-user.target`
 
-  Special target unit for setting up a multi-user system with non-graphical support. On the Tizen platform, this target is used for launching platform infrastructure daemons, such as `dbus` (system session), power manager, GPS manager, telephony daemon, WRT (Web Run Time) security daemon, and the media server. Some `systemd`-related daemons (such as `systemd-logind`) are also started in this phase.
+  Special target unit for setting up a multi-user system with non-graphical support. The Tizen platform uses the `systemd` user session for App privilege daemons. On the Tizen platform, this target is used for launching platform infrastructure daemons, such as `dbus` (system session), power manager, GPS manager, telephony daemon, WRT (Web Run Time) security daemon, and the media server. Some `systemd`-related daemons (such as `systemd-logind`) are also started in this phase.
 
 - `graphical.target`
 
-  Special target unit for setting up a graphical environment. Some important daemons (such as the access control and OMA DS agent servers) that must have root permission are launched at this point. The Tizen platform uses the `systemd` user session for App privilege daemons. Some daemons related to the graphics system, such as Enlightenment (window manager), are launched with the App privilege in this phase. The Tizen platform has its special target for middleware and mobile service: `tizen-middleware.target` starts the platform service daemons, such as calendar, contacts, email, message, sound, and download provider. `tizen-mobile-session.target` starts some service daemons related with the mobile session.
+  Special target unit for setting up a graphical environment. Some important daemons (such as the access control and etc) that must have root permission are launched at this point.  Some daemons related to the graphics system, such as Enlightenment (window manager), are launched with the App privilege in this phase.
 
 ## BSP customization
 
@@ -176,6 +172,12 @@ If you want to use `initramfs`, you can use these configurations:
 - `CONFIG_INITRAMFS_ROOT_UID`
 - `CONFIG_INITRAMFS_ROOT_GID`
 - `CONFIG_INITRAMFS_COMPRESSION_NONE/GZIP/BZIP2/LZNA/LZO`
+
+To use Tizen Platform, Kernel has to enable some configurations. Refer to tizen-kernel-configs git repository.
+
+```
+git clone git://review.tizen.org/git/platform/kernel/tizen-kernel-configs -b tizen
+```
 
 ## Tizen file system
 
@@ -264,7 +266,7 @@ The SDHCI controller is supported in the MMC/SD/SDIO interface. The mobile stora
 
 - **Kernel configuration for MMC Interface**
 
-  `CONFIG_MMC_BLOCK`, `CONFIG_MMC`, `CONFIG_MSHCI` (for Mobile Storage Interface enable)
+  `CONFIG_MMC_BLOCK`, `CONFIG_MMC`, `CONFIG_MMC_SDHCI`, `CONFIG_MMC_DW` (for Mobile Storage Interface enable)
   `sys interface: /dev/mmcblk0pX`
 
 - **Kernel configuration for SD/SDIO Interface**
@@ -272,6 +274,7 @@ The SDHCI controller is supported in the MMC/SD/SDIO interface. The mobile stora
   `CONFIG_MMC_BLOCK`, `CONFIG_MMC`
   `CONFIG_MMC_SDHCI` (for SDHCI host Interface enable)
   `CONFIG_MMC_SDHCI_S3C` (for Samsung SoC)
+  `CONFIG_MMC_DW` (for DesignWare Host Controler Interface enable)
   `sys interface: /dev/mmcblk1pX`
 
 The `X` denotes the MMC partition number. Details of the partition mount point for Tizen are covered under [Tizen Partition Layout](#tizen-partition-layout).
